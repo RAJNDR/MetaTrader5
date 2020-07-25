@@ -32,8 +32,10 @@ class tradeClass:
         self.closePositionSelling = None
         self.lastInstProfitBuying = 0.0
         self.lastInstProfitSelling = 0.0
+        self.openPositionBuyingOrderNumber = 0
+        self.openPositionSellingOrderNumber = 0
 
-        logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %H:%M:%S ')
+        logging.basicConfig(format='%(asctime)s,%(levelname)s,%(message)s', datefmt='%m/%d/%Y,%H:%M:%S')
         self.logger = logging.getLogger('TraderLog')
         self.logger.setLevel(logging.DEBUG)
 
@@ -146,36 +148,26 @@ class tradeClass:
             pipSellingPair = closeSellingPair - self.lastCloseSellingPair
 
             #inst Profit buying pair
-            # instProfitBuyingPair = self.getBuyProfit(self.buyingCurrency,self.lotSize,self.lastCloseBuyingPair,closeBuyingPair)
-            # if instProfitBuyingPair is None:
-            #     self.logger.error('No Profit calculated for buying currency continue till next available transaction')
-            #     continue
             openPositionBuyingPair = mt5.positions_get(symbol=self.buyingCurrency)
             if len(openPositionBuyingPair) == 0:
                 instProfitBuyingPair = 0
             else:
                 instProfitBuyingPair = openPositionBuyingPair[0].profit
-            #instProfitBuyingPair += self.lastInstProfitBuying
 
-            #inst profit selling pair
-            # instProfitSellingPair = self.getSellProfit(self.sellingCurrency,self.lotSize,self.lastCloseSellingPair,closeSellingPair)
-            # if instProfitSellingPair is None:
-            #     self.logger.error('No Profit calculated for selling currency continue till next available transaction')
-            #     continue
+            #get inst profit selling pair
             openPositionSellingPair = mt5.positions_get(symbol=self.sellingCurrency)
             if len(openPositionSellingPair) == 0:
                 instProfitSellingPair = 0
             else:
                 instProfitSellingPair = openPositionSellingPair[0].profit
-            #instProfitSellingPair += self.lastInstProfitSelling
 
             #instProfit calc
             self.instProfit = instProfitSellingPair + instProfitBuyingPair
             self.lastInstProfitBuying = instProfitBuyingPair
             self.lastInstProfitSelling = instProfitSellingPair
 
-            self.logger.info("Pair:{} Open:{} Close:{} PipChange:{} ProfitInst:{}".format(self.buyingCurrency, barBuyingPair['open'].to_list()[0],barBuyingPair['close'].to_list()[0],pipBuyingPair,instProfitBuyingPair))
-            self.logger.info("Pair:{} Open:{} Close:{} PipChange:{} ProfitInst:{}".format(self.sellingCurrency, barSellingPair['open'].to_list()[0],barSellingPair['close'].to_list()[0],pipSellingPair,instProfitSellingPair))
+            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.buyingCurrency, self.openPositionBuyingOrderNumber,barBuyingPair['open'].to_list()[0],barBuyingPair['close'].to_list()[0],pipBuyingPair,instProfitBuyingPair,self.instProfit,self.cumulativeProfit))
+            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.sellingCurrency, self.openPositionSellingOrderNumber,barSellingPair['open'].to_list()[0],barSellingPair['close'].to_list()[0],pipSellingPair,instProfitSellingPair,self.instProfit,self.cumulativeProfit))
 
             #set bool to open Position
             if self.openPositionBuying is None and self.openPositionSelling is None:
@@ -185,6 +177,8 @@ class tradeClass:
             #Open position
             if self.openNewPosition:
                 #Try to open position
+                self.openPositionBuyingOrderNumber = 0
+                self.openPositionSellingOrderNumber = 0
                 self.openNewPosition = False
                 self.openPositionBuying = self.positionOpen(self.buyingCurrency,lotSize,mt5.ORDER_TYPE_BUY)
                 self.openPositionSelling = self.positionOpen(self.sellingCurrency,lotSize,mt5.ORDER_TYPE_SELL)
@@ -196,16 +190,13 @@ class tradeClass:
                     continue
 
                 if (self.openPositionBuying.retcode != mt5.TRADE_RETCODE_DONE) or (self.openPositionSelling.retcode != mt5.TRADE_RETCODE_DONE):
-                    #todo: log date time
-                    #todo: log profit loss individual pair
-                    #todo: log total profit.
-                    #todo: total account balance
                     self.logger.error("positionBuying exit with Ret code {} and comment {}".format(self.openPositionBuying.retcode,self.openPositionBuying.comment))
                     self.logger.error("openPositionSelling exit with Ret code {} and comment {}".format(self.openPositionSelling.retcode,self.openPositionSelling.comment))
                     self.openPositionBuying = None
                     self.openPositionSelling = None
                     continue
-
+                self.openPositionBuyingOrderNumber = self.openPositionBuying.order
+                self.openPositionSellingOrderNumber = self.openPositionSelling.order
                 self.logger.warning("POSITION OPEN!")
 
             #set bool to close position if profit goes out of margin
