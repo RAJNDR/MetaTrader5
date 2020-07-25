@@ -3,6 +3,7 @@ import time
 import pandas as pd
 from datetime import datetime
 import logging
+from CurrencyPair import CurrencyPair as CP
 
 buyingCurrency = 'GBPUSD'
 sellingCurrency = 'GBPCHF'
@@ -10,30 +11,32 @@ timeFrame = mt5.TIMEFRAME_M10
 profitMargin = 30
 lossMargin = -10
 lotSize = 0.1
-cycleTime = 600 #(Trade cycle) in seconds 
+cycleTime = 1 #(Trade cycle) in seconds 
 
 class tradeClass:
     def __init__(self,buyingCurrency,sellingCurrency,timeFrame,lotSize, cycleTime):
+        self.buyPair = CP(buyingCurrency,mt5, pd)
+        self.sellPair = CP(sellingCurrency, mt5, pd)
         self.initSelf = True
-        self.buyingCurrency = buyingCurrency
-        self.sellingCurrency = sellingCurrency
+        self.buyingCurrency = buyingCurrency # curr
+        self.sellingCurrency = sellingCurrency # curr
         self.timeFrame = timeFrame
         self.cycleTime = cycleTime
-        self.lotSize = lotSize
-        self.lastCloseBuyingPair = 0.0
+        self.lotSize = lotSize 
+        self.lastCloseBuyingPair = 0.0 
         self.lastCloseSellingPair = 0.0
-        self.instProfit = 0.0
+        self.instProfit = 0.0 # curr
         self.cumulativeProfit = 0.0
         self.openNewPosition = False
         self.closeOpenPositions = False
-        self.openPositionBuying = None
-        self.openPositionSelling = None
-        self.closePositionBuying = None
-        self.closePositionSelling = None
+        self.openPositionBuying = None # curr
+        self.openPositionSelling = None # curr
+        self.closePositionBuying = None # curr
+        self.closePositionSelling = None # curr
         self.lastInstProfitBuying = 0.0
         self.lastInstProfitSelling = 0.0
-        self.openPositionBuyingOrderNumber = 0
-        self.openPositionSellingOrderNumber = 0
+        self.openPositionBuyingOrderNumber = 0 # curr
+        self.openPositionSellingOrderNumber = 0 # curr
 
         logging.basicConfig(format='%(asctime)s,%(levelname)s,%(message)s', datefmt='%m/%d/%Y,%H:%M:%S')
         self.logger = logging.getLogger('TraderLog')
@@ -53,87 +56,12 @@ class tradeClass:
         logging.info('close MetaTrader5')
         mt5.shutdown()
 
-    def test(self):
-        for i in range(100):
-            #Get Bars Per unit Time
-            buyingCurrencyBar = mt5.copy_rates_from_pos(self.buyingCurrency, timeFrame, 0, 1)
-            sellingCurrencyBar = mt5.copy_rates_from_pos(self.sellingCurrency, timeFrame, 0, 1)
-            buyingCurrencyBar_frame = pd.DataFrame(buyingCurrencyBar)
-            sellingCurrencyBar_frame = pd.DataFrame(sellingCurrencyBar)
-            buyingCurrencyBar_frame['time']=pd.to_datetime(buyingCurrencyBar_frame['time'], unit='s')
-            sellingCurrencyBar_frame['time']=pd.to_datetime(sellingCurrencyBar_frame['time'], unit='s')
-
-            print(buyingCurrencyBar_frame)
-            time.sleep(1)
-
-    def positionOpen(self, currency, amount, orderType):
-        #point = mt5.symbol_info(currency).point
-        if orderType == mt5.ORDER_TYPE_BUY:
-            price = mt5.symbol_info_tick(currency).ask
-        elif orderType == mt5.ORDER_TYPE_SELL:
-            price = mt5.symbol_info_tick(currency).bid
-
-        request = {
-            "action": mt5.TRADE_ACTION_DEAL,
-            "symbol": currency,
-            "volume": amount,
-            "type": orderType,
-            "price": price,
-            "sl": 0.0,
-            "tp": 0.0,
-            "deviation": 1,
-            "magic": 234000,
-            "comment": "python script open",
-            "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_RETURN,
-        }
-        result = mt5.order_send(request)
-        return result
-
-    def positionClose(self, currency,amount, orderType, orderNumber):
-        if orderType == mt5.ORDER_TYPE_BUY:
-            price = mt5.symbol_info_tick(currency).ask
-        elif orderType == mt5.ORDER_TYPE_SELL:
-            price = mt5.symbol_info_tick(currency).bid
-
-        request={
-            "action": mt5.TRADE_ACTION_DEAL,
-            "symbol": currency,
-            "volume": amount,
-            "type": orderType,
-            "position": orderNumber,
-            "price": price,
-            "deviation": 1,
-            "magic": 234000,
-            "comment": "python script close",
-            "type_time": mt5.ORDER_TIME_GTC,
-            "type_filling": mt5.ORDER_FILLING_RETURN,
-        }
-        result = mt5.order_send(request)
-        return result
-
-    def getSellProfit(self, currency, amount, priceAtPositionOpen, closingPrice):
-        #todo: implement this
-        return mt5.order_calc_profit(mt5.ORDER_TYPE_SELL,currency,amount,priceAtPositionOpen,closingPrice)
-        #return
-
-    def getBuyProfit(self, currency, amount, priceAtPositionOpen, closingPrice):
-        #todo: implement this
-        return mt5.order_calc_profit(mt5.ORDER_TYPE_BUY,currency,amount,priceAtPositionOpen,closingPrice)
-        #return
-
-    def getBar(self,currency, timeFrame):
-        currencyBar = mt5.copy_rates_from_pos(currency, timeFrame, 0, 1)
-        currencyBar_frame = pd.DataFrame(currencyBar)
-        currencyBar_frame['time']=pd.to_datetime(currencyBar_frame['time'], unit='s')
-        return currencyBar_frame
-
     def runTrade(self):
         while True:
             time.sleep(cycleTime)
             #get bars of currency pairs
-            barBuyingPair = self.getBar(self.buyingCurrency,timeFrame)
-            barSellingPair = self.getBar(self.sellingCurrency,timeFrame)
+            barBuyingPair = self.buyPair.getBar(timeFrame)
+            barSellingPair = self.sellPair.getBar(timeFrame)
             #get closing prices
             closeBuyingPair = barBuyingPair['close'].to_list()[0]
             closeSellingPair = barSellingPair['close'].to_list()[0]
@@ -146,21 +74,10 @@ class tradeClass:
             #calculate PIP
             pipBuyingPair = closeBuyingPair - self.lastCloseBuyingPair
             pipSellingPair = closeSellingPair - self.lastCloseSellingPair
-
             #inst Profit buying pair
-            openPositionBuyingPair = mt5.positions_get(symbol=self.buyingCurrency)
-            if len(openPositionBuyingPair) == 0:
-                instProfitBuyingPair = 0
-            else:
-                instProfitBuyingPair = openPositionBuyingPair[0].profit
-
+            instProfitBuyingPair = self.buyPair.getProfitOnOpenPosition()
             #get inst profit selling pair
-            openPositionSellingPair = mt5.positions_get(symbol=self.sellingCurrency)
-            if len(openPositionSellingPair) == 0:
-                instProfitSellingPair = 0
-            else:
-                instProfitSellingPair = openPositionSellingPair[0].profit
-
+            instProfitSellingPair = self.sellPair.getProfitOnOpenPosition()
             #instProfit calc
             self.instProfit = instProfitSellingPair + instProfitBuyingPair
             self.lastInstProfitBuying = instProfitBuyingPair
@@ -180,8 +97,8 @@ class tradeClass:
                 self.openPositionBuyingOrderNumber = 0
                 self.openPositionSellingOrderNumber = 0
                 self.openNewPosition = False
-                self.openPositionBuying = self.positionOpen(self.buyingCurrency,lotSize,mt5.ORDER_TYPE_BUY)
-                self.openPositionSelling = self.positionOpen(self.sellingCurrency,lotSize,mt5.ORDER_TYPE_SELL)
+                self.openPositionBuying = self.buyPair.positionOpen(lotSize,mt5.ORDER_TYPE_BUY)
+                self.openPositionSelling = self.sellPair.positionOpen(lotSize,mt5.ORDER_TYPE_SELL)
 
                 if self.openPositionBuying is None or self.openPositionSelling is None:
                     self.logger.error('Transaction not successfull! wait till next.')
@@ -210,8 +127,8 @@ class tradeClass:
                     self.logger.error('No position Available to close')
                     continue
 
-                self.closePositionBuying = self.positionClose(buyingCurrency,lotSize,mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
-                self.closePositionSelling = self.positionClose(sellingCurrency,lotSize,mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
+                self.closePositionBuying = self.buyPair.positionClose(lotSize,mt5.ORDER_TYPE_SELL,self.openPositionBuying.order) #self.positionClose(buyingCurrency,lotSize,mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
+                self.closePositionSelling = self.sellPair.positionClose(lotSize,mt5.ORDER_TYPE_BUY,self.openPositionSelling.order) #self.positionClose(sellingCurrency,lotSize,mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
 
                 if self.closePositionBuying is None or self.closePositionSelling is None:
                     logger.error('Position Closing not successfull! wait till next.')
