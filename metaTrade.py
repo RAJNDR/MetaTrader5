@@ -11,15 +11,13 @@ timeFrame = mt5.TIMEFRAME_M10
 profitMargin = 30
 lossMargin = -10
 lotSize = 0.1
-cycleTime = 1 #(Trade cycle) in seconds 
+cycleTime = 600 #(Trade cycle) in seconds
 
 class tradeClass:
-    def __init__(self,buyingCurrency,sellingCurrency,timeFrame,lotSize, cycleTime):
+    def __init__(self, buyingCurrency, sellingCurrency, timeFrame, lotSize, cycleTime):
         self.buyPair = CP(buyingCurrency,mt5, pd)
-        self.sellPair = CP(sellingCurrency, mt5, pd)
+        self.sellPair = CP(sellingCurrency,mt5, pd)
         self.initSelf = True
-        self.buyingCurrency = buyingCurrency # curr
-        self.sellingCurrency = sellingCurrency # curr
         self.timeFrame = timeFrame
         self.cycleTime = cycleTime
         self.lotSize = lotSize 
@@ -83,8 +81,8 @@ class tradeClass:
             self.lastInstProfitBuying = instProfitBuyingPair
             self.lastInstProfitSelling = instProfitSellingPair
 
-            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.buyingCurrency, self.openPositionBuyingOrderNumber,barBuyingPair['open'].to_list()[0],barBuyingPair['close'].to_list()[0],pipBuyingPair,instProfitBuyingPair,self.instProfit,self.cumulativeProfit))
-            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.sellingCurrency, self.openPositionSellingOrderNumber,barSellingPair['open'].to_list()[0],barSellingPair['close'].to_list()[0],pipSellingPair,instProfitSellingPair,self.instProfit,self.cumulativeProfit))
+            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.buyPair.getSymbol(), self.openPositionBuyingOrderNumber,barBuyingPair['open'].to_list()[0],barBuyingPair['close'].to_list()[0],pipBuyingPair,instProfitBuyingPair,self.instProfit,self.cumulativeProfit))
+            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.sellPair.getSymbol(), self.openPositionSellingOrderNumber,barSellingPair['open'].to_list()[0],barSellingPair['close'].to_list()[0],pipSellingPair,instProfitSellingPair,self.instProfit,self.cumulativeProfit))
 
             #set bool to open Position
             if self.openPositionBuying is None and self.openPositionSelling is None:
@@ -97,8 +95,8 @@ class tradeClass:
                 self.openPositionBuyingOrderNumber = 0
                 self.openPositionSellingOrderNumber = 0
                 self.openNewPosition = False
-                self.openPositionBuying = self.buyPair.positionOpen(lotSize,mt5.ORDER_TYPE_BUY)
-                self.openPositionSelling = self.sellPair.positionOpen(lotSize,mt5.ORDER_TYPE_SELL)
+                self.openPositionBuying = self.buyPair.positionOpen(self.lotSize,mt5.ORDER_TYPE_BUY)
+                self.openPositionSelling = self.sellPair.positionOpen(self.lotSize,mt5.ORDER_TYPE_SELL)
 
                 if self.openPositionBuying is None or self.openPositionSelling is None:
                     self.logger.error('Transaction not successfull! wait till next.')
@@ -127,8 +125,8 @@ class tradeClass:
                     self.logger.error('No position Available to close')
                     continue
 
-                self.closePositionBuying = self.buyPair.positionClose(lotSize,mt5.ORDER_TYPE_SELL,self.openPositionBuying.order) #self.positionClose(buyingCurrency,lotSize,mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
-                self.closePositionSelling = self.sellPair.positionClose(lotSize,mt5.ORDER_TYPE_BUY,self.openPositionSelling.order) #self.positionClose(sellingCurrency,lotSize,mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
+                self.closePositionBuying = self.buyPair.positionClose(self.lotSize,mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
+                self.closePositionSelling = self.sellPair.positionClose(self.lotSize,mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
 
                 if self.closePositionBuying is None or self.closePositionSelling is None:
                     logger.error('Position Closing not successfull! wait till next.')
