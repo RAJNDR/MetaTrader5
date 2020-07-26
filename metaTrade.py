@@ -11,7 +11,7 @@ timeFrame = mt5.TIMEFRAME_M10
 profitMargin = 30
 lossMargin = -10
 lotSize = 0.1
-cycleTime = 600 #(Trade cycle) in seconds
+cycleTime = 1 #(Trade cycle) in seconds
 
 class tradeClass:
     def __init__(self, buyingCurrency, sellingCurrency, timeFrame, lotSize, cycleTime):
@@ -95,6 +95,13 @@ class tradeClass:
                 self.openPositionBuyingOrderNumber = 0
                 self.openPositionSellingOrderNumber = 0
                 self.openNewPosition = False
+                #close any open position
+                if self.sellPair.closeAllOpenPositions() and self.buyPair.closeAllOpenPositions():
+                    self.logger.warning("No position are open. Opening new Position")
+                else:
+                    self.logger.error("Cannot close already open positions! wait till next cycle.")
+                    continue
+                #check Spread
                 totalSpread = self.sellPair.getSpread() + self.buyPair.getSpread()
                 if (totalSpread) < (lossMargin/2):
                     self.logger.error("Spread{}:{},Spread{}:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,lossMargin/2))

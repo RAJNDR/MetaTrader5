@@ -72,3 +72,23 @@ class CurrencyPair:
         bidPrice = self.mt5.symbol_info_tick(self.currencyPair).bid
         spreadInPips = (bidPrice - askPrice) * 10000
         return spreadInPips
+
+    def closeAllOpenPositions(self):
+        result = False
+        openPositions = self.mt5.positions_get(symbol=self.currencyPair)
+        if openPositions is None:
+           result = True
+        elif len(openPositions) == 0:
+            result = True
+        else:
+            result = True
+            for position in openPositions:
+                if position.type == self.mt5.ORDER_TYPE_BUY:
+                    closed = self.positionClose(position.volume,self.mt5.ORDER_TYPE_SELL,position.ticket)
+                elif position.type == self.mt5.ORDER_TYPE_SELL:
+                    closed = self.positionClose(position.volume,self.mt5.ORDER_TYPE_BUY,position.ticket)
+
+                if closed.retcode != self.mt5.TRADE_RETCODE_DONE:
+                    result = False
+                    break
+        return result
