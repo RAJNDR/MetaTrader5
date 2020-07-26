@@ -95,6 +95,10 @@ class tradeClass:
                 self.openPositionBuyingOrderNumber = 0
                 self.openPositionSellingOrderNumber = 0
                 self.openNewPosition = False
+                totalSpread = self.sellPair.getSpread() + self.buyPair.getSpread()
+                if (totalSpread) < (lossMargin/2):
+                    self.logger.error("Spread{}:{},Spread{}:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,lossMargin/2))
+                    continue
                 self.openPositionBuying = self.buyPair.positionOpen(self.lotSize,mt5.ORDER_TYPE_BUY)
                 self.openPositionSelling = self.sellPair.positionOpen(self.lotSize,mt5.ORDER_TYPE_SELL)
 

@@ -67,6 +67,8 @@ class CurrencyPair:
             instProfit = openPosition[0].profit
         return instProfit
 
-
-
-    
+    def getSpread(self):
+        askPrice = self.mt5.symbol_info_tick(self.currencyPair).ask
+        bidPrice = self.mt5.symbol_info_tick(self.currencyPair).bid
+        spreadInPips = (bidPrice - askPrice) * 10000
+        return spreadInPips
