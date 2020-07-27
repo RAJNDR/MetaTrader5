@@ -8,11 +8,11 @@ import ExpertAdvisor as EA
 
 buyingCurrency = 'GBPUSD'
 sellingCurrency = 'GBPCHF'
-timeFrame = mt5.TIMEFRAME_M10
+timeFrame = mt5.TIMEFRAME_M1
 profitMargin = 30
 lossMargin = -10
 lotSize = 0.1
-cycleTime = 1 #(Trade cycle) in seconds
+cycleTime = 60 #(Trade cycle) in seconds
 
 class tradeClass:
     def __init__(self, buyingCurrency, sellingCurrency, timeFrame, lotSize, cycleTime):

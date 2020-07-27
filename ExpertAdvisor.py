@@ -70,8 +70,8 @@ class HedgedPairAdvisor(ExpertAdvisor):
 
         #set bool to open Position
         if self.openPositionBuying is None and self.openPositionSelling is None:
-            if (self.instProfit >= 0.0):
-                self.openNewPosition = True
+            #if (self.instProfit >= 0.0):
+            self.openNewPosition = True
 
         #Open position
         if self.openNewPosition:
@@ -90,8 +90,8 @@ class HedgedPairAdvisor(ExpertAdvisor):
             if (totalSpread) < (self.lossMargin/2):
                 self.logger.error("Spread{}:{},Spread{}:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,lossMargin/2))
                 return
-            self.openPositionBuying = self.buyPair.positionOpen(self.lotSize,mt5.ORDER_TYPE_BUY)
-            self.openPositionSelling = self.sellPair.positionOpen(self.lotSize,mt5.ORDER_TYPE_SELL)
+            self.openPositionBuying = self.buyPair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_BUY)
+            self.openPositionSelling = self.sellPair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_SELL)
 
             if self.openPositionBuying is None or self.openPositionSelling is None:
                 self.logger.error('Transaction not successfull! wait till next.')
@@ -99,7 +99,7 @@ class HedgedPairAdvisor(ExpertAdvisor):
                 self.openPositionSelling = None
                 return
 
-            if (self.openPositionBuying.retcode != mt5.TRADE_RETCODE_DONE) or (self.openPositionSelling.retcode != mt5.TRADE_RETCODE_DONE):
+            if (self.openPositionBuying.retcode != self.mt5.TRADE_RETCODE_DONE) or (self.openPositionSelling.retcode != self.mt5.TRADE_RETCODE_DONE):
                 self.logger.error("positionBuying exit with Ret code {} and comment {}".format(self.openPositionBuying.retcode,self.openPositionBuying.comment))
                 self.logger.error("openPositionSelling exit with Ret code {} and comment {}".format(self.openPositionSelling.retcode,self.openPositionSelling.comment))
                 self.openPositionBuying = None
@@ -120,14 +120,14 @@ class HedgedPairAdvisor(ExpertAdvisor):
                 self.logger.error('No position Available to close')
                 return
 
-            self.closePositionBuying = self.buyPair.positionClose(self.lotSize,mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
-            self.closePositionSelling = self.sellPair.positionClose(self.lotSize,mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
+            self.closePositionBuying = self.buyPair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
+            self.closePositionSelling = self.sellPair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
 
             if self.closePositionBuying is None or self.closePositionSelling is None:
                 logger.error('Position Closing not successfull! wait till next.')
                 return
 
-            if (self.closePositionBuying.retcode != mt5.TRADE_RETCODE_DONE) or (self.closePositionSelling.retcode != mt5.TRADE_RETCODE_DONE):
+            if (self.closePositionBuying.retcode != self.mt5.TRADE_RETCODE_DONE) or (self.closePositionSelling.retcode != self.mt5.TRADE_RETCODE_DONE):
                 self.logger.error("closePositionBuying exit with Ret code {} and comment {}".format(self.closePositionBuying.retcode,self.closePositionBuying.comment))
                 self.logger.error("closePositionSelling exit with Ret code {} and comment {}".format(self.closePositionSelling.retcode,self.closePositionSelling.comment))
                 self.openNewPosition = True
