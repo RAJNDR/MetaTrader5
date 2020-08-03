@@ -125,9 +125,11 @@ class HedgedPairAdvisor(ExpertAdvisor):
 
             self.closePositionBuying = self.buyPair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
             self.closePositionSelling = self.sellPair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
+            self.openPositionBuying = None
+            self.openPositionSelling = None
 
             if self.closePositionBuying is None or self.closePositionSelling is None:
-                logger.error('Position Closing not successfull! wait till next.')
+                self.logger.error('Position Closing not successfull! wait till next.')
                 return
 
             if (self.closePositionBuying.retcode != self.mt5.TRADE_RETCODE_DONE) or (self.closePositionSelling.retcode != self.mt5.TRADE_RETCODE_DONE):
@@ -138,8 +140,6 @@ class HedgedPairAdvisor(ExpertAdvisor):
 
             self.cumulativeProfit += self.lastInstProfitBuying + self.lastInstProfitSelling
 
-            self.openPositionBuying = None
-            self.openPositionSelling = None
             self.closePositionBuying = None
             self.closePositionSelling = None
             self.logger.warning("POSITION CLOSE! at CummulativeProfit: {}".format(self.cumulativeProfit))
