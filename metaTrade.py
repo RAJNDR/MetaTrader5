@@ -11,25 +11,26 @@ sellingCurrency = 'GBPCHF'
 timeFrame = mt5.TIMEFRAME_M1
 profitMargin = 30
 lossMargin = -10
+spreadMargin = -5
 lotSize = 0.1
 cycleTime = 60 #(Trade cycle) in seconds
 
 class tradeClass:
     def __init__(self, buyingCurrency, sellingCurrency, timeFrame, lotSize, cycleTime):
-        self.buyPair = CP(buyingCurrency,mt5, pd)
-        self.sellPair = CP(sellingCurrency,mt5, pd)
+        logging.basicConfig(format='%(asctime)s,%(levelname)s,%(message)s', datefmt='%m/%d/%Y,%H:%M:%S')
+        self.logger = logging.getLogger('TraderLog')
+        self.logger.setLevel(logging.DEBUG)
+        self.buyPair = CP(buyingCurrency,mt5, pd,self.logger)
+        self.sellPair = CP(sellingCurrency,mt5, pd,self.logger)
         self.argDict = {
             'buyingPair':self.buyPair,
             'sellingPair':self.sellPair,
             'timeFrame':timeFrame,
             'lotSize':lotSize,
             'lossMargin':lossMargin,
+            'spreadMargin':spreadMargin,
             'profitMargin':profitMargin
         }
-
-        logging.basicConfig(format='%(asctime)s,%(levelname)s,%(message)s', datefmt='%m/%d/%Y,%H:%M:%S')
-        self.logger = logging.getLogger('TraderLog')
-        self.logger.setLevel(logging.DEBUG)
         self.expertAdvisor = EA.HedgedPairAdvisor(self.argDict,self.logger,mt5)
 
         if not mt5.initialize():

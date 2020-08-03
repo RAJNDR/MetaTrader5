@@ -20,6 +20,7 @@ class HedgedPairAdvisor(ExpertAdvisor):
         self.lotSize = self.dict_args['lotSize']
         self.profitMargin = self.dict_args['profitMargin']
         self.lossMargin = self.dict_args['lossMargin']
+        self.spreadMargin = self.dict_args['spreadMargin']
         
         self.initSelf = True
         self.lastCloseBuyingPair = 0.0 
@@ -87,9 +88,11 @@ class HedgedPairAdvisor(ExpertAdvisor):
                 return
             #check Spread
             totalSpread = self.sellPair.getSpread() + self.buyPair.getSpread()
-            if (totalSpread) < (self.lossMargin/2):
-                self.logger.error("Spread{}:{},Spread{}:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,lossMargin/2))
+            if (totalSpread) < self.spreadMargin:
+                self.logger.error("Spread{}:{},Spread{}:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,self.spreadMargin))
                 return
+            self.logger.warning("Opening{} with spread:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),totalSpread,self.spreadMargin))
+            self.logger.warning("Opening{} with spread:{},totalSpread:{},Threshold:{}".format(self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,self.spreadMargin))
             self.openPositionBuying = self.buyPair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_BUY)
             self.openPositionSelling = self.sellPair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_SELL)
 
