@@ -1,8 +1,9 @@
 class CurrencyPair:
-    def __init__(self,currencyPair, mt5, pd):
+    def __init__(self,currencyPair, mt5, pd,logger):
         self.currencyPair = currencyPair
         self.mt5 = mt5
         self.pd = pd
+        self.logger=logger
 
     def getSymbol(self):
         return self.currencyPair
@@ -89,6 +90,8 @@ class CurrencyPair:
                     closed = self.positionClose(position.volume,self.mt5.ORDER_TYPE_BUY,position.ticket)
 
                 if closed.retcode != self.mt5.TRADE_RETCODE_DONE:
+                    self.logger.error("Could not close unpaired:{} Order:{}, RetCode:{}, Commit:{}".format(self.getSymbol(),position.ticket,closed.retcode,closed.comment))
                     result = False
                     break
+                self.logger.warning("Closed unpaired:{} Order:{}".format(self.getSymbol(),position.ticket))
         return result
