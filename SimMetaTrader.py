@@ -56,6 +56,7 @@ class tradeClass:
 
     def runTrade(self):
         while True:
+            #time.sleep(1)
             self.expertAdvisor.runAdvisor()
             self.buyPair.increaseUnitTime()
             self.sellPair.increaseUnitTime()

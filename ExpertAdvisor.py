@@ -66,8 +66,8 @@ class HedgedPairAdvisor(ExpertAdvisor):
         self.lastInstProfitBuying = instProfitBuyingPair
         self.lastInstProfitSelling = instProfitSellingPair
 
-        self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.buyPair.getSymbol(), self.openPositionBuyingOrderNumber,barBuyingPair['open'].to_list()[0],barBuyingPair['close'].to_list()[0],pipBuyingPair,instProfitBuyingPair,self.instProfit,self.cumulativeProfit))
-        self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.sellPair.getSymbol(), self.openPositionSellingOrderNumber,barSellingPair['open'].to_list()[0],barSellingPair['close'].to_list()[0],pipSellingPair,instProfitSellingPair,self.instProfit,self.cumulativeProfit))
+        self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.buyPair.getSymbol(), self.openPositionBuyingOrderNumber,barBuyingPair['open'].to_list()[0],barBuyingPair['close'].to_list()[0],round(pipBuyingPair,4),round(instProfitBuyingPair,4),round(self.instProfit,4),self.cumulativeProfit))
+        self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.sellPair.getSymbol(), self.openPositionSellingOrderNumber,barSellingPair['open'].to_list()[0],barSellingPair['close'].to_list()[0],round(pipSellingPair,4),round(instProfitSellingPair,4),round(self.instProfit,4),self.cumulativeProfit))
 
         #set bool to open Position
         if self.openPositionBuying is None and self.openPositionSelling is None:

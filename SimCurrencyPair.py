@@ -9,7 +9,6 @@ class ResultPosition:
     def __init__(self):
         return
 
-
 class SimCurrencyPair(CurrencyPair):
     def __init__(self,currencyPair, mt5, pd,logger,startTime,deltaTime):
         super().__init__(currencyPair,mt5,pd,logger)
@@ -31,6 +30,7 @@ class SimCurrencyPair(CurrencyPair):
         dfTick = self.pd.DataFrame(tick)
         self.bid = dfTick['bid'].to_list()[0]
         self.ask = dfTick['ask'].to_list()[0]
+        self.spread = (self.bid - self.ask) * 10000
 
     def increaseUnitTime(self):
         self.time += self.deltaTime
@@ -47,12 +47,12 @@ class SimCurrencyPair(CurrencyPair):
 
     def getBar(self, timeFrame):
         #todo: fix this
-        d= self.pd.DataFrame.from_dict({'close':[0], 'open':[0]})
-        return d
+        #d= self.pd.DataFrame.from_dict({'close':[0], 'open':[0]})
+        #return d
         currencyBar = self.mt5.copy_rates_from(self.currencyPair, timeFrame, self.time, 1)
         currencyBar_frame = self.pd.DataFrame(currencyBar)
         currencyBar_frame['time']=self.pd.to_datetime(currencyBar_frame['time'], unit='s')
-        #return currencyBar_frame
+        return currencyBar_frame
 
     def positionClose(self, amount, orderType, orderNumber):
         self.profit = 0.0
