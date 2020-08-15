@@ -4,9 +4,9 @@ import pandas as pd
 import pytz
 import os
 
-currencyPair='GBPUSD'
-timeStep=[1,0,0] #Days, Hours, Minutes
-startDateTime = '2020-08-07 00:00:00+00:00'
+currencyPair='GBPCHF'
+timeStep=[0,0,5] #Days, Hours, Minutes
+startDateTime = '2020-07-01 00:00:00+00:00'
 useGenDateTime = True # false to use date from mt5
  
 # establish connection to MetaTrader 5 terminal
@@ -17,7 +17,6 @@ if not mt5.initialize():
 # set time zone to UTC
 timezone = pytz.timezone("Etc/UTC")
 # create 'datetime' object in UTC time zone to avoid the implementation of a local time zone offset
-#utc_from = datetime.datetime(2017, 1, 1, 8, 0,tzinfo=timezone)
 utc_from = datetime.datetime.fromisoformat(startDateTime)
 delta_time = datetime.timedelta(days = timeStep[0], hours = timeStep[1], minutes=timeStep[2])
 header_once = True
