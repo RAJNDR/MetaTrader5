@@ -1,12 +1,16 @@
 class CurrencyPair:
-    def __init__(self,currencyPair, mt5, pd,logger):
+    def __init__(self,currencyPair, mt5, pd,logger,magicNumber):
         self.currencyPair = currencyPair
         self.mt5 = mt5
         self.pd = pd
         self.logger=logger
+        self.magicNumber = magicNumber
 
     def getSymbol(self):
         return self.currencyPair
+
+    def getMagicNumber(self):
+        return self.magicNumber
 
     def getBar(self, timeFrame):
         currencyBar = self.mt5.copy_rates_from_pos(self.currencyPair, timeFrame, 0, 1)
@@ -28,7 +32,7 @@ class CurrencyPair:
             "position": orderNumber,
             "price": price,
             "deviation": 1,
-            "magic": 234000,
+            "magic": self.magicNumber,
             "comment": "python script close",
             "type_time": self.mt5.ORDER_TIME_GTC,
             "type_filling": self.mt5.ORDER_FILLING_RETURN,
@@ -52,7 +56,7 @@ class CurrencyPair:
             "sl": 0.0,
             "tp": 0.0,
             "deviation": 1,
-            "magic": 234000,
+            "magic": self.magicNumber,
             "comment": "python script open",
             "type_time": self.mt5.ORDER_TIME_GTC,
             "type_filling": self.mt5.ORDER_FILLING_RETURN,
@@ -84,14 +88,15 @@ class CurrencyPair:
         else:
             result = True
             for position in openPositions:
-                if position.type == self.mt5.ORDER_TYPE_BUY:
-                    closed = self.positionClose(position.volume,self.mt5.ORDER_TYPE_SELL,position.ticket)
-                elif position.type == self.mt5.ORDER_TYPE_SELL:
-                    closed = self.positionClose(position.volume,self.mt5.ORDER_TYPE_BUY,position.ticket)
+                if position.magic == self.magicNumber:
+                    if position.type == self.mt5.ORDER_TYPE_BUY:
+                        closed = self.positionClose(position.volume,self.mt5.ORDER_TYPE_SELL,position.ticket)
+                    elif position.type == self.mt5.ORDER_TYPE_SELL:
+                        closed = self.positionClose(position.volume,self.mt5.ORDER_TYPE_BUY,position.ticket)
 
-                if closed.retcode != self.mt5.TRADE_RETCODE_DONE:
-                    self.logger.error("Could not close unpaired:{} Order:{}, RetCode:{}, Commit:{}".format(self.getSymbol(),position.ticket,closed.retcode,closed.comment))
-                    result = False
-                    break
-                self.logger.warning("Closed unpaired:{} Order:{}".format(self.getSymbol(),position.ticket))
+                    if closed.retcode != self.mt5.TRADE_RETCODE_DONE:
+                        self.logger.error("Could not close unpaired:{} Order:{}, RetCode:{}, Commit:{}".format(self.getSymbol(),position.ticket,closed.retcode,closed.comment))
+                        result = False
+                        break
+                    self.logger.warning("Closed unpaired:{} Order:{}".format(self.getSymbol(),position.ticket))
         return result

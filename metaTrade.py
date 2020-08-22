@@ -18,20 +18,10 @@ cycleTime = 60 #(Trade cycle) in seconds
 class tradeClass:
     def __init__(self, buyingCurrency, sellingCurrency, timeFrame, lotSize, cycleTime):
         logging.basicConfig(format='%(asctime)s,%(levelname)s,%(message)s', datefmt='%m/%d/%Y,%H:%M:%S')
+        self.timeFrame = timeFrame
         self.logger = logging.getLogger('TraderLog')
         self.logger.setLevel(logging.DEBUG)
-        self.buyPair = CP(buyingCurrency,mt5, pd,self.logger)
-        self.sellPair = CP(sellingCurrency,mt5, pd,self.logger)
-        self.argDict = {
-            'buyingPair':self.buyPair,
-            'sellingPair':self.sellPair,
-            'timeFrame':timeFrame,
-            'lotSize':lotSize,
-            'lossMargin':lossMargin,
-            'spreadMargin':spreadMargin,
-            'profitMargin':profitMargin
-        }
-        self.expertAdvisor = EA.HedgedPairAdvisor(self.argDict,self.logger,mt5)
+        self.advisorsList = list()
 
         if not mt5.initialize():
             logger.error("initialize() failed, error code =" + mt5.last_error()[2])
@@ -50,10 +40,34 @@ class tradeClass:
     def runTrade(self):
         while True:
             time.sleep(cycleTime)
-            self.expertAdvisor.runAdvisor()
+            for advisor in self.advisorsList:
+                advisor.runAdvisor()
+
+    def parseConfigAddPairs(self):
+        import configparser
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        for section in config.sections():
+            buyingPair = CP(config.get(section,'buyingPair'),mt5,pd,self.logger,int(config.get(section,'magicNumber')))
+            middlePair = CP(config.get(section,'middlePair'),mt5,pd,self.logger,int(config.get(section,'magicNumber')))
+            sellingPair = CP(config.get(section,'sellingPair'),mt5,pd,self.logger,int(config.get(section,'magicNumber')))
+            argDict = {
+            'buyingPair':buyingPair,
+            'middlePair':middlePair,
+            'middlePosition':config.get(section,'middlePosition'),
+            'sellingPair':sellingPair,
+            'timeFrame':timeFrame,
+            'lotSize':lotSize,
+            'lossMargin':lossMargin,
+            'spreadMargin':spreadMargin,
+            'profitMargin':profitMargin
+            }
+            self.advisorsList.append(EA.HedgedPairAdvisor(argDict,self.logger,mt5))
+            self.logger.warning('Added ExperAdvisor! Magic:{} buying:{} {}:{} selling:{}'.format(config.get(section,'magicNumber'),config.get(section,'buyingPair'),config.get(section,'middlePosition'),config.get(section,'middlePair'),config.get(section,'sellingPair')))
 
 if __name__ == '__main__':
     trade = tradeClass(buyingCurrency,sellingCurrency,timeFrame,lotSize, cycleTime)
+    trade.parseConfigAddPairs()
     trade.runTrade()
 
 
