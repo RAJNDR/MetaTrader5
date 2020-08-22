@@ -31,6 +31,10 @@ try:
         ticks_frame=pd.DataFrame(ticks)
         # convert time in seconds into the datetime format
         ticks_frame['time']=pd.to_datetime(ticks_frame['time'], unit='s')
+        #write fixed start and end points
+        ticks_frame.iloc[0,ticks_frame.columns.get_loc('time')] = pd.Timestamp(utc_from.strftime('%Y-%m-%d %H:%M:%S'))
+        endtime = datetime.datetime.combine(utc_from.date(),datetime.time(23,59,59))
+        ticks_frame.iloc[-1,ticks_frame.columns.get_loc('time')] = pd.Timestamp(endtime.strftime('%Y-%m-%d %H:%M:%S'))
         # drop duplicates
         ticks_frame = ticks_frame.drop_duplicates(subset=['time'])
 
