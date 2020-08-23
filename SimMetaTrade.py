@@ -16,7 +16,7 @@ lossMargin = -100
 spreadMargin = -50
 lotSize = 0.1
 cycleTime = 60 #(Trade cycle) in seconds
-startDateTime = '2020-08-10 00:00:00+00:00'
+startDateTime = '2020-04-01 00:00:00+00:00'
 startDateTime = datetime.fromisoformat(startDateTime)
 deltaTime = timedelta(hours=1)
 
