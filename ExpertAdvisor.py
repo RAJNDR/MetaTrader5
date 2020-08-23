@@ -191,3 +191,12 @@ class HedgedPairAdvisor(ExpertAdvisor):
         self.lastCloseBuyingPair = closeBuyingPair
         self.lastCloseMiddlePair = closeMiddlePair
         self.lastCloseSellingPair = closeSellingPair
+
+    def getSellPair(self):
+        return self.sellPair
+
+    def getBuyPair(self):
+        return self.buyPair
+
+    def getMiddlePair(self):
+        return self.middlePair
