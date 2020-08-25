@@ -65,11 +65,14 @@ class CurrencyPair:
         return result
 
     def getProfitOnOpenPosition(self):
+        instProfit = 0
         openPosition = self.mt5.positions_get(symbol=self.currencyPair)
         if len(openPosition) == 0:
             instProfit = 0
         else:
-            instProfit = openPosition[0].profit
+            for position in openPosition:
+                if position.magic == self.magicNumber:
+                    instProfit = position.profit
         return instProfit
 
     def getSpread(self):
