@@ -29,6 +29,8 @@ class SimCurrencyPair(CurrencyPair):
         self.init()
 
     def init(self):
+        while self.time.weekday() == 5 or self.time.weekday() == 6:
+            self.time += self.deltaTime
         time,bid,ask = self.tickData.getTick(self.time)
         self.bid = bid
         self.ask = ask
