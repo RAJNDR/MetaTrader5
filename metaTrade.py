@@ -57,10 +57,10 @@ class tradeClass:
             'middlePosition':config.get(section,'middlePosition'),
             'sellingPair':sellingPair,
             'timeFrame':timeFrame,
-            'lotSize':lotSize,
-            'lossMargin':lossMargin,
-            'spreadMargin':spreadMargin,
-            'profitMargin':profitMargin
+            'lotSize':float(config.get(section,'lotsize')),
+            'lossMargin':float(config.get(section,'loss')),
+            'spreadMargin':float(config.get(section,'spread')),
+            'profitMargin':float(config.get(section,'profit'))
             }
             self.advisorsList.append(EA.HedgedPairAdvisor(argDict,self.logger,mt5))
             self.logger.warning('Added ExperAdvisor! Magic:{} buying:{} {}:{} selling:{}'.format(config.get(section,'magicNumber'),config.get(section,'buyingPair'),config.get(section,'middlePosition'),config.get(section,'middlePair'),config.get(section,'sellingPair')))
