@@ -2,6 +2,7 @@ from CurrencyPair import CurrencyPair
 import datetime
 import MetaTrader5 as mt5
 from TickData import TickData
+import pandas_ta
 
 class ResultPosition:
     retcode = mt5.TRADE_RETCODE_DONE
@@ -35,6 +36,11 @@ class SimCurrencyPair(CurrencyPair):
         self.bid = bid
         self.ask = ask
         self.spread = (self.bid - self.ask) * 10000
+
+    def getRSI(self,size):
+        df = self.tickData.getDataFrame()
+        df = df.ta.rsi(close='bid',length=14)
+        return df[self.time.strftime('%Y-%m-%d %H:%M:%S')]
 
     def increaseUnitTime(self):
         self.time += self.deltaTime

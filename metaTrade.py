@@ -48,14 +48,19 @@ class tradeClass:
         config = configparser.ConfigParser()
         config.read('config.ini')
         for section in config.sections():
-            buyingPair = CP(config.get(section,'buyingPair'),mt5,pd,self.logger,int(config.get(section,'magicNumber')))
-            middlePair = CP(config.get(section,'middlePair'),mt5,pd,self.logger,int(config.get(section,'magicNumber')))
-            sellingPair = CP(config.get(section,'sellingPair'),mt5,pd,self.logger,int(config.get(section,'magicNumber')))
+            buyingPairsSymbols = config.get(section,'buyingPair')
+            buyingPairsSymbols = buyingPairsSymbols.split(',')
+            sellingPairsSymbols = config.get(section,'sellingPair')
+            sellingPairsSymbols = sellingPairsSymbols.split(',')
+            buyingPairs = list()
+            sellingPairs = list()
+            for pair in buyingPairsSymbols:
+                buyingPairs.append(CP(pair,mt5,pd,self.logger,int(config.get(section,'magicNumber'))))
+            for pair in sellingPairsSymbols:
+                sellingPairs.append(CP(pair,mt5,pd,self.logger,int(config.get(section,'magicNumber'))))
             argDict = {
-            'buyingPair':buyingPair,
-            'middlePair':middlePair,
-            'middlePosition':config.get(section,'middlePosition'),
-            'sellingPair':sellingPair,
+            'buyingPair':buyingPairs,
+            'sellingPair':sellingPairs,
             'timeFrame':timeFrame,
             'lotSize':float(config.get(section,'lotsize')),
             'lossMargin':float(config.get(section,'loss')),
@@ -63,7 +68,7 @@ class tradeClass:
             'profitMargin':float(config.get(section,'profit'))
             }
             self.advisorsList.append(EA.HedgedPairAdvisor(argDict,self.logger,mt5))
-            self.logger.warning('Added ExperAdvisor! Magic:{} buying:{} {}:{} selling:{}'.format(config.get(section,'magicNumber'),config.get(section,'buyingPair'),config.get(section,'middlePosition'),config.get(section,'middlePair'),config.get(section,'sellingPair')))
+            self.logger.warning('Added ExperAdvisor! Magic:{} buying:{} selling:{}'.format(config.get(section,'magicNumber'),config.get(section,'buyingPair'),config.get(section,'sellingPair')))
 
 if __name__ == '__main__':
     trade = tradeClass(buyingCurrency,sellingCurrency,timeFrame,lotSize, cycleTime)

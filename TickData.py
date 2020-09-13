@@ -6,10 +6,11 @@ class TickData:
     def __init__(self,symbol,mt5,pd):
         self.symbol = symbol
         self.deltatime = datetime.timedelta(days=1)
-        self.currentDateTime = None
+        self.currentDateTime = datetime.datetime(1970,1,1)
         self.mt5 = mt5
         self.pd = pd
         self.df = None
+        self.historicalDatasize = self.deltatime
 
     def getTick(self,dateTime):
         if self.currentDateTime is None:
@@ -18,17 +19,25 @@ class TickData:
         while self.currentDateTime.weekday() == 5 or self.currentDateTime.weekday() == 6:
             self.currentDateTime = self.currentDateTime + self.deltatime
 
-        if not isinstance(self.df,pd.DataFrame) or self.currentDateTime.date() != dateTime.date():
+        if self.currentDateTime.date() != dateTime.date():
             ticks = self.mt5.copy_ticks_range(self.symbol, dateTime, dateTime + self.deltatime, mt5.COPY_TICKS_ALL)
-            self.df = self.pd.DataFrame(ticks)
-            self.df['time']=self.pd.to_datetime(self.df['time'], unit='s')
-            self.df = self.df[['time','bid','ask']]
-            self.df.iloc[0,self.df.columns.get_loc('time')] = self.pd.Timestamp(dateTime.strftime('%Y-%m-%d %H:%M:%S'))
+            df = self.pd.DataFrame(ticks)
+            df['time']=self.pd.to_datetime(df['time'], unit='s')
+            df = df[['time','bid','ask']]
+            df.iloc[0,df.columns.get_loc('time')] = self.pd.Timestamp(dateTime.strftime('%Y-%m-%d %H:%M:%S'))
             endtime = datetime.datetime.combine(dateTime.date(),datetime.time(23,59,59))
-            self.df.iloc[-1,self.df.columns.get_loc('time')] = self.pd.Timestamp(endtime.strftime('%Y-%m-%d %H:%M:%S'))
-            self.df = self.df.drop_duplicates(subset=['time'])
-            self.df = self.df.set_index('time').resample('S').ffill().reset_index()
-            self.df = self.df.set_index('time')
+            df.iloc[-1,df.columns.get_loc('time')] = self.pd.Timestamp(endtime.strftime('%Y-%m-%d %H:%M:%S'))
+            df = df.drop_duplicates(subset=['time'])
+            df = df.set_index('time').resample('S').ffill().reset_index()
+            df = df.set_index('time')
+            if self.df is None:
+                self.df = df
+            else:
+                frames = [self.df, df]
+                currentlength = len(self.df)
+                self.df= pd.concat(frames)
+                if len(self.df) >= 2*currentlength:
+                    self.df = self.df.iloc[len(df):]
         
         self.currentDateTime = dateTime
         bidPrice = self.df.loc[self.currentDateTime.strftime('%Y-%m-%d %H:%M:%S'),'bid']
@@ -36,6 +45,8 @@ class TickData:
         time = self.currentDateTime
         return (time,bidPrice,askPrice)
 
+    def getDataFrame(self):
+        return self.df
         
 
 if __name__ == '__main__':

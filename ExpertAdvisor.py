@@ -16,9 +16,6 @@ class HedgedPairAdvisor(ExpertAdvisor):
         super().__init__(dict_args,logger,mt5)
         #buying pair
         self.buyPair = self.dict_args['buyingPair']
-        #middle pair
-        self.middlePair = self.dict_args['middlePair']
-        self.middlePositionType = self.dict_args['middlePosition']
         #selling pair
         self.sellPair = self.dict_args['sellingPair']
         self.timeFrame = self.dict_args['timeFrame']
@@ -29,30 +26,35 @@ class HedgedPairAdvisor(ExpertAdvisor):
         
         self.initSelf = True
         ##
-        self.lastCloseBuyingPair = 0.0
-        self.lastCloseMiddlePair = 0.0
-        self.lastCloseSellingPair = 0.0
+        self.lastCloseBuyingPair = {}
+        self.lastCloseSellingPair = {}
         ##
         self.instProfit = 0.0
         self.cumulativeProfit = 0.0
         self.openNewPosition = False
         self.closeOpenPositions = False
         ##
-        self.openPositionBuying = None
-        self.openPositionMiddle = None 
-        self.openPositionSelling = None
+        self.openPositionBuying = {}
+        self.openPositionSelling = {}
         ##
-        self.closePositionBuying = None
-        self.closePositionMiddle = None
-        self.closePositionSelling = None
+        self.closePositionBuying = {}
+        self.closePositionSelling = {}
         ##
-        self.lastInstProfitBuying = 0.0
-        self.lastInstProfitMiddle = 0.0
-        self.lastInstProfitSelling = 0.0
+        self.openPositionBuyingOrderNumber = {}
+        self.openPositionSellingOrderNumber = {}
+        for pair in self.sellPair:
+            self.openPositionSelling[pair.getSymbol()] = None
+            self.closePositionSelling[pair.getSymbol()] = None
+            self.openPositionSellingOrderNumber[pair.getSymbol()] = 0
+
+        for pair in self.buyPair:
+            self.openPositionBuying[pair.getSymbol()] = None
+            self.closePositionBuying[pair.getSymbol()] = None
+            self.openPositionBuyingOrderNumber[pair.getSymbol()] = 0
+
         ##
-        self.openPositionBuyingOrderNumber = 0
-        self.openPositionMiddleOrderNumber = 0
-        self.openPositionSellingOrderNumber = 0
+        self.lastInstProfitBuying = {}
+        self.lastInstProfitSelling = {}
 
     def prepareAdvisor(self):
         return
@@ -62,90 +64,107 @@ class HedgedPairAdvisor(ExpertAdvisor):
 
     def runAdvisor(self):
         #get bars of currency pairs
-        barBuyingPair = self.buyPair.getBar(self.timeFrame)
-        barMiddlePair = self.middlePair.getBar(self.timeFrame)
-        barSellingPair = self.sellPair.getBar(self.timeFrame)
+        barBuyingPair = {}
+        for pair in self.buyPair:
+            barBuyingPair[pair.getSymbol()] = pair.getBar(self.timeFrame)
+        barSellingPair = {}
+        for pair in self.sellPair:
+            barSellingPair[pair.getSymbol()] = pair.getBar(self.timeFrame)
         #get closing prices
-        closeBuyingPair = barBuyingPair['close'].to_list()[0]
-        closeMiddlePair = barMiddlePair['close'].to_list()[0]
-        closeSellingPair = barSellingPair['close'].to_list()[0]
+        closeBuyingPair={}
+        closeSellingPair={}
+        for key,value in barBuyingPair.items():
+            closeBuyingPair[key] = value['close'].to_list()[0]
+        for key,value in barSellingPair.items():
+            closeSellingPair[key] = value['close'].to_list()[0]
         #run only onetime
         if self.initSelf:
             self.initSelf = False
             self.lastCloseBuyingPair = closeBuyingPair
-            self.lastCloseMiddlePair = closeMiddlePair
             self.lastCloseSellingPair = closeSellingPair
 
         #calculate PIP
-        pipBuyingPair = closeBuyingPair - self.lastCloseBuyingPair
-        pipMiddlePair = closeMiddlePair - self.lastCloseMiddlePair
-        pipSellingPair = closeSellingPair - self.lastCloseSellingPair
+        pipBuyingPair = {}
+        pipSellingPair = {}
+        for pair in self.buyPair:
+            pipBuyingPair[pair.getSymbol()] = closeBuyingPair[pair.getSymbol()] - self.lastCloseBuyingPair[pair.getSymbol()]
+        
+        for pair in self.sellPair:
+            pipSellingPair[pair.getSymbol()] = closeSellingPair[pair.getSymbol()] - self.lastCloseSellingPair[pair.getSymbol()]
         #inst Profit
-        instProfitBuyingPair = self.buyPair.getProfitOnOpenPosition()
-        instProfitMiddlePair = self.middlePair.getProfitOnOpenPosition()
-        instProfitSellingPair = self.sellPair.getProfitOnOpenPosition()
+        instProfitBuyingPair={}
+        for pair in self.buyPair:
+            instProfitBuyingPair[pair.getSymbol()] = pair.getProfitOnOpenPosition()
+
+        instProfitSellingPair={}
+        for pair in self.sellPair:
+            instProfitSellingPair[pair.getSymbol()] = pair.getProfitOnOpenPosition()
         #instProfit calc
-        self.instProfit = instProfitSellingPair + instProfitBuyingPair + instProfitMiddlePair
+        self.instProfit = sum(instProfitSellingPair.values()) + sum(instProfitBuyingPair.values())
+
         self.lastInstProfitBuying = instProfitBuyingPair
-        self.lastInstProfitMiddle = instProfitMiddlePair
         self.lastInstProfitSelling = instProfitSellingPair
 
-        self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.buyPair.getSymbol(), self.openPositionBuyingOrderNumber,barBuyingPair['open'].to_list()[0],barBuyingPair['close'].to_list()[0],pipBuyingPair,instProfitBuyingPair,self.instProfit,self.cumulativeProfit))
-        self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.middlePair.getSymbol(), self.openPositionMiddleOrderNumber,barMiddlePair['open'].to_list()[0],barMiddlePair['close'].to_list()[0],pipMiddlePair,instProfitMiddlePair,self.instProfit,self.cumulativeProfit))
-        self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(self.sellPair.getSymbol(), self.openPositionSellingOrderNumber,barSellingPair['open'].to_list()[0],barSellingPair['close'].to_list()[0],pipSellingPair,instProfitSellingPair,self.instProfit,self.cumulativeProfit))
+        for pair in self.buyPair:
+            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(pair.getSymbol(), self.openPositionBuyingOrderNumber[pair.getSymbol()],barBuyingPair[pair.getSymbol()]['open'].to_list()[0],barBuyingPair[pair.getSymbol()]['close'].to_list()[0],pipBuyingPair[pair.getSymbol()],instProfitBuyingPair[pair.getSymbol()],self.instProfit,self.cumulativeProfit))
+        
+        for pair in self.sellPair:
+            self.logger.info("Pair:{},Order:{},Open:{},Close:{},PipChange:{},ProfitInst:{},ProfitCombined:{},ProfitCumm:{}".format(pair.getSymbol(), self.openPositionSellingOrderNumber[pair.getSymbol()],barSellingPair[pair.getSymbol()]['open'].to_list()[0],barSellingPair[pair.getSymbol()]['close'].to_list()[0],pipSellingPair[pair.getSymbol()],instProfitSellingPair[pair.getSymbol()],self.instProfit,self.cumulativeProfit))
 
         #set bool to open Position
-        if self.openPositionBuying is None and self.openPositionSelling is None:
-            #if (self.instProfit >= 0.0):
+        if all(x is None for x in self.openPositionBuying.values()) and all(x is None for x in self.openPositionSelling.values()):
+            #if (self.buyPair.getRSI(14) >= 70.0) and (self.middlePair.getRSI(14) >= 70.0) and (self.sellPair.getRSI(14) <= 30.0):
             self.openNewPosition = True
-
         #Open position
         if self.openNewPosition:
             #Try to open position
-            self.openPositionBuyingOrderNumber = 0
-            self.openPositionMiddleOrderNumber = 0
-            self.openPositionSellingOrderNumber = 0
+            self.openPositionBuyingOrderNumber = dict.fromkeys(self.openPositionBuyingOrderNumber, 0)
+            self.openPositionSellingOrderNumber = dict.fromkeys(self.openPositionSellingOrderNumber, 0)
             self.openNewPosition = False
             #close any open position
-            if self.sellPair.closeAllOpenPositions() and self.middlePair.closeAllOpenPositions() and self.buyPair.closeAllOpenPositions():
+            if all(x.closeAllOpenPositions() is True for x in self.sellPair) and all(x.closeAllOpenPositions() is True for x in self.buyPair):
                 self.logger.warning("No position are open. Opening new Position")
             else:
                 self.logger.error("Cannot close already open positions! wait till next cycle.")
                 return
             #check Spread
-            totalSpread = self.sellPair.getSpread() + self.middlePair.getSpread() + self.buyPair.getSpread()
+            #totalSpread = self.sellPair.getSpread() + self.buyPair.getSpread()
+            totalSpread = sum([pair.getSpread() for pair in self.buyPair]) + sum([pair.getSpread() for pair in self.sellPair])
             if (totalSpread) < self.spreadMargin:
-                self.logger.error("Spread{}:{},Spread{}:{},Spread{}:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),self.middlePair.getSymbol(),self.middlePair.getSpread(),self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,self.spreadMargin))
+                msg = str()
+                allPairs = self.sellPair + self.buyPair
+                for pair in allPairs:
+                    msg += "Spread{}:{},".format(pair.getSymbol(),pair.getSpread())
+                msg += "totalSpread:{},Threshold:{}".format(totalSpread,self.spreadMargin)
+                #self.logger.error("Spread{}:{},Spread{}:{},Spread{}:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),self.middlePair.getSymbol(),self.middlePair.getSpread(),self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,self.spreadMargin))
+                self.logger.error(msg)
                 return
-            self.logger.warning("Opening{} with spread:{},totalSpread:{},Threshold:{}".format(self.sellPair.getSymbol(),self.sellPair.getSpread(),totalSpread,self.spreadMargin))
-            self.logger.warning("Opening{} with spread:{},totalSpread:{},Threshold:{}".format(self.middlePair.getSymbol(),self.middlePair.getSpread(),totalSpread,self.spreadMargin))
-            self.logger.warning("Opening{} with spread:{},totalSpread:{},Threshold:{}".format(self.buyPair.getSymbol(),self.buyPair.getSpread(),totalSpread,self.spreadMargin))
+            
+            for pair in self.sellPair:
+                self.logger.warning("Opening {} with spread:{},totalSpread:{},Threshold:{}".format(pair.getSymbol(),pair.getSpread(),totalSpread,self.spreadMargin))
+            for pair in self.buyPair:
+                self.logger.warning("Opening {} with spread:{},totalSpread:{},Threshold:{}".format(pair.getSymbol(),pair.getSpread(),totalSpread,self.spreadMargin))
             #opening position
-            self.openPositionBuying = self.buyPair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_BUY)
-            if self.middlePositionType.lower() == 'buying':
-                self.openPositionMiddle = self.middlePair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_BUY)
-            else:
-                self.openPositionMiddle = self.middlePair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_SELL)
-            self.openPositionSelling = self.sellPair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_SELL)
+            for pair in self.buyPair:
+                self.openPositionBuying[pair.getSymbol()] = pair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_BUY)
+            for pair in self.sellPair:
+                self.openPositionSelling[pair.getSymbol()] = pair.positionOpen(self.lotSize,self.mt5.ORDER_TYPE_SELL)
 
-            if self.openPositionBuying is None or self.openPositionMiddle is None or self.openPositionSelling is None:
+            if all(x is None for x in self.openPositionBuying.values()) or all(x is None for x in self.openPositionSelling.values()):
                 self.logger.error('Transaction not successfull! wait till next.')
-                self.openPositionBuying = None
-                self.openPositionMiddle = None
-                self.openPositionSelling = None
+                self.openPositionBuying = dict.fromkeys(self.openPositionBuying, None)
+                self.openPositionSelling = dict.fromkeys(self.openPositionSelling, None)
                 return
 
-            if (self.openPositionBuying.retcode != self.mt5.TRADE_RETCODE_DONE) or (self.openPositionMiddle.retcode != self.mt5.TRADE_RETCODE_DONE) or (self.openPositionSelling.retcode != self.mt5.TRADE_RETCODE_DONE):
-                self.logger.error("openPositionBuying exit with Ret code {} and comment {}".format(self.openPositionBuying.retcode,self.openPositionBuying.comment))
-                self.logger.error("openPositionMiddle exit with Ret code {} and comment {}".format(self.openPositionMiddle.retcode,self.openPositionMiddle.comment))
-                self.logger.error("openPositionSelling exit with Ret code {} and comment {}".format(self.openPositionSelling.retcode,self.openPositionSelling.comment))
-                self.openPositionBuying = None
-                self.openPositionMiddle = None
-                self.openPositionSelling = None
+            if all(x.retcode != self.mt5.TRADE_RETCODE_DONE for key,x in self.openPositionBuying.items()) or all(x.retcode != self.mt5.TRADE_RETCODE_DONE for key,x in self.openPositionSelling.items()):
+                allPairs = {**self.openPositionBuying , **self.openPositionSelling}
+                for key,value in allPairs.items():
+                    self.logger.error("OpenPosition:{} exit with Ret code {} and comment {}".format(key,value.retcode,value.comment))
+                self.openPositionBuying = dict.fromkeys(self.openPositionBuying, None)
+                self.openPositionSelling = dict.fromkeys(self.openPositionSelling, None)
                 return
-            self.openPositionBuyingOrderNumber = self.openPositionBuying.order
-            self.openPositionMiddleOrderNumber = self.openPositionMiddle.order
-            self.openPositionSellingOrderNumber = self.openPositionSelling.order
+            self.openPositionBuyingOrderNumber = {key:pair.order for key,pair in self.openPositionBuying.items()}
+            self.openPositionSellingOrderNumber = {key:pair.order for key,pair in self.openPositionSelling.items()}
             self.logger.warning("POSITION OPEN!")
 
         #set bool to close position if profit goes out of margin
@@ -155,41 +174,39 @@ class HedgedPairAdvisor(ExpertAdvisor):
         #Close position
         if self.closeOpenPositions:
             self.closeOpenPositions = False
-            if (self.openPositionBuying is None) or (self.openPositionMiddle is None) or (self.openPositionSelling is None):
+            if all(x is None for x in self.openPositionBuying.values()) and all(x is None for x in self.openPositionSelling.values()):
                 self.logger.error('No position Available to close')
                 return
             
             #close Positions individual pairs
-            self.closePositionBuying = self.buyPair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_SELL,self.openPositionBuying.order)
-            if self.middlePositionType.lower() == 'buying':
-                self.closePositionMiddle = self.middlePair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_SELL,self.openPositionMiddle.order)
-            else:
-                self.closePositionMiddle = self.middlePair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_BUY,self.openPositionMiddle.order)
-            self.closePositionSelling = self.sellPair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_BUY,self.openPositionSelling.order)
-            self.openPositionBuying = None
-            self.openPositionMiddle = None
-            self.openPositionSelling = None
+            for pair in self.buyPair:
+                self.closePositionBuying[pair.getSymbol()] = pair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_SELL,self.openPositionBuying[pair.getSymbol()].order)
+            for pair in self.sellPair:
+                self.closePositionSelling[pair.getSymbol()] = pair.positionClose(self.lotSize,self.mt5.ORDER_TYPE_BUY,self.openPositionSelling[pair.getSymbol()].order)
 
-            if self.closePositionBuying is None or self.closePositionMiddle is None or self.closePositionSelling is None:
+            self.openPositionBuying = dict.fromkeys(self.openPositionBuying, None)
+            self.openPositionSelling = dict.fromkeys(self.openPositionSelling, None)
+
+            #start editing this
+            if all(x is None for x in self.closePositionBuying.values()) or all(x is None for x in self.closePositionSelling.values()):
                 self.logger.error('Position Closing not successfull! wait till next.')
                 return
 
-            if (self.closePositionBuying.retcode != self.mt5.TRADE_RETCODE_DONE) or (self.closePositionMiddle.retcode != self.mt5.TRADE_RETCODE_DONE) or (self.closePositionSelling.retcode != self.mt5.TRADE_RETCODE_DONE):
-                self.logger.error("closePositionBuying exit with Ret code {} and comment {}".format(self.closePositionBuying.retcode,self.closePositionBuying.comment))
-                self.logger.error("closePositionMiddle exit with Ret code {} and comment {}".format(self.closePositionMiddle.retcode,self.closePositionMiddle.comment))
-                self.logger.error("closePositionSelling exit with Ret code {} and comment {}".format(self.closePositionSelling.retcode,self.closePositionSelling.comment))
+            if all(x.retcode != self.mt5.TRADE_RETCODE_DONE for key,x in self.closePositionBuying.items()) or all(x.retcode != self.mt5.TRADE_RETCODE_DONE for key,x in self.closePositionSelling.items()):
+                allPairs = {**self.closePositionBuying , **self.closePositionSelling}
+                for key,value in allPairs.items():
+                    self.logger.error("ClosePosition:{} exit with Ret code {} and comment {}".format(key,value.retcode,value.comment))
+                
                 self.openNewPosition = True
                 return
 
-            self.cumulativeProfit += self.lastInstProfitBuying + self.lastInstProfitMiddle + self.lastInstProfitSelling
+            self.cumulativeProfit += sum(self.lastInstProfitBuying.values()) + sum(self.lastInstProfitSelling.values())
 
-            self.closePositionBuying = None
-            self.closePositionMiddle = None
-            self.closePositionSelling = None
+            self.closePositionBuying = dict.fromkeys(self.closePositionBuying, None)
+            self.closePositionSelling = dict.fromkeys(self.closePositionSelling, None)
             self.logger.warning("POSITION CLOSE! at CummulativeProfit: {}".format(self.cumulativeProfit))
         #set variable for previous cycle
         self.lastCloseBuyingPair = closeBuyingPair
-        self.lastCloseMiddlePair = closeMiddlePair
         self.lastCloseSellingPair = closeSellingPair
 
     def getSellPair(self):
